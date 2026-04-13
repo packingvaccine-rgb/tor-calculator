@@ -94,7 +94,9 @@
       const id = Date.now();
       const nowStr = getNow();
       let html = '';
-      let containerId = type === 'leftovers' ? 'leftover-container' : `${type}-container`;
+      
+      // Fixed: standardized container mapping
+      let targetId = (type === 'leftovers') ? 'leftover-container' : `${type}-container`;
       
       if(type === 'outs') {
         data.outs.push({ id, time: new Date(nowStr), qty: 0 });
@@ -106,7 +108,8 @@
         data.leftovers.push({ id, time: new Date(nowStr), qty: 0 });
         html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('leftovers',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('leftovers',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('leftovers',${id})">✕</button></div>`;
       }
-      document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
+      
+      document.getElementById(targetId).insertAdjacentHTML('beforeend', html);
     }
 
     function update(type, id, key, val) {
@@ -127,7 +130,9 @@
     function clearAll() {
       if (confirm("Reset all data?")) {
         data = { outs: [], packs: [], leftovers: [] };
-        ['outs-container','packs-container','leftover-container'].forEach(id => document.getElementById(id).innerHTML = '');
+        document.getElementById('outs-container').innerHTML = '';
+        document.getElementById('packs-container').innerHTML = '';
+        document.getElementById('leftover-container').innerHTML = '';
         document.getElementById('results').innerHTML = '';
         addRow('outs');
       }
@@ -159,7 +164,7 @@
             torDetails.push({ type: `📦 Pack (${e.config||'N/A'})`, time: e.time, push: b.outTime, qty: pull, tor: t, note: (b.isRepulled && b.acc > 0) });
             q -= pull; b.qty -= pull; if (b.qty <= 0) outStack.shift();
           }
-        } else {
+        } else if (e.type === 'return') {
           while (q > 0 && outStack.length) {
             let b = outStack[outStack.length-1]; 
             let pull = Math.min(q, b.qty);
