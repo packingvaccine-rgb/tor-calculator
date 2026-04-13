@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TOR Calculator App</title>
   <link rel="manifest" href="manifest.json">
+
   <meta name="theme-color" content="#1a73e8">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +14,7 @@
     * {box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
     body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:15px;background:#f0f2f5;color:#1c1e21; line-height: 1.4;}
     h1 {text-align:center;color:#1a73e8;font-size:1.4rem;margin-bottom:20px;}
-    .container {background:white;border-radius:16px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-width:1000px;margin:auto;}
+    .container {background:white;border-radius:16px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-width:800px;margin:auto;}
     
     /* Buttons */
     button {height:48px; border:none; border-radius:10px; cursor:pointer; font-weight:600; font-size:14px; transition:0.1s; display: flex; align-items: center; justify-content: center; gap: 8px;}
@@ -31,27 +32,27 @@
     .top-controls {margin-bottom:20px;}
     .bottom-controls {display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:20px;}
     
-    /* Input Sections */
+    /* Layout Sections */
     .section {margin:15px 0; padding:12px; border:1px solid #e8eaed; border-radius:12px; background:#fafafa;}
     .section-header {border-bottom:2px solid #fff; padding-bottom:8px; margin-bottom:12px;}
     .section-header h3 {margin:0; font-size:0.85rem; color:#5f6368; text-transform:uppercase; font-weight:bold; letter-spacing: 0.5px;}
     
     .input-row {display:flex; gap:8px; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;}
     .input-row input {height:44px; padding:10px; border:1px solid #dadce0; border-radius:8px; font-size:14px; min-width:0;}
-    .input-row input[type="datetime-local"] {flex: 2.5;}
+    .input-row input[type="datetime-local"] {flex: 2;}
     .input-row input[type="number"], .input-row input[type="text"] {flex: 1;}
     
     .remove-btn {background:#fff; color:#ea4335; border:1px solid #f5f5f5; border-radius:8px; width:44px; height:44px; font-size:20px; flex-shrink:0;}
 
     /* Results Table */
     .table-wrapper {overflow-x: auto; margin-top: 20px;}
-    table {width:100%; border-collapse:collapse; font-size:11px; min-width: 600px;}
+    table {width:100%; border-collapse:collapse; font-size:11px; min-width: 500px;}
     th,td {padding:12px 8px; text-align:left; border-bottom:1px solid #eee;}
     th {background:#f8f9fa; color:#5f6368; font-weight: bold;}
     
     /* Highlighting */
     .highlight-max-row { background-color: #fff9c4 !important; outline: 2px solid #fbc02d; font-weight: bold; }
-    .highlight-history { background-color: #e3f2fd !important; } /* Light Blue */
+    .highlight-history { background-color: #e3f2fd !important; }
     
     .comment-text { display:block; font-size:9px; color:#d93025; font-style:italic; margin-top:4px; font-weight:bold;}
     .max-tor {background:#fff0f0; padding:18px; border-left:6px solid #ea4335; margin-top:20px; font-size:16px; font-weight:bold; color:#d93025; text-align:center; border-radius:8px;}
@@ -60,8 +61,6 @@
       .no-print {display:none !important;}
       .container {box-shadow: none; padding: 0;}
       table, th, td {border:1px solid #ddd;}
-      .highlight-max-row {background-color: #fff9c4 !important; -webkit-print-color-adjust: exact;}
-      .highlight-history {background-color: #e3f2fd !important; -webkit-print-color-adjust: exact;}
     }
   </style>
 </head>
@@ -102,72 +101,43 @@
   <script>
     let data = { outs: [], packs: [], leftovers: [] };
 
-    // Helper: Formats datetime for inputs
     function getNow() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
     }
 
-    // Helper: Formats datetime for the Report table
-    function formatDT(date) {
-      return date.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
-    }
-
-    // Helper: Converts minutes to 00:00 format
-    function minToHHMM(minutes) {
-      const h = Math.floor(minutes / 60);
-      const m = Math.floor(minutes % 60);
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-    }
-
     function addRow(type) {
       const id = Date.now();
-      const nowStr = getNow();
+      const now = getNow();
       let html = '';
       
       if(type === 'outs') {
-        data.outs.push({ id, time: new Date(nowStr), qty: 0 });
-        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('outs',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('outs',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('outs',${id})">✕</button></div>`;
+        data.outs.push({ id, time: new Date(now), qty: 0 });
+        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${now}" onchange="update('${type}',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('${type}',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('${type}',${id})">✕</button></div>`;
       } else if(type === 'packs') {
-        data.packs.push({ id, time: new Date(nowStr), qty: 0, config: '' });
-        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('packs',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('packs',${id},'qty',this.value)"><input type="text" placeholder="Config" onchange="update('packs',${id},'config',this.value)"><button class="remove-btn" onclick="remove('packs',${id})">✕</button></div>`;
-      } else if(type === 'leftovers') {
-        data.leftovers.push({ id, time: new Date(nowStr), qty: 0 });
-        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('leftovers',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('leftovers',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('leftovers',${id})">✕</button></div>`;
+        data.packs.push({ id, time: new Date(now), qty: 0, config: '' });
+        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${now}" onchange="update('${type}',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('${type}',${id},'qty',this.value)"><input type="text" placeholder="Cfg" onchange="update('${type}',${id},'config',this.value)"><button class="remove-btn" onclick="remove('${type}',${id})">✕</button></div>`;
+      } else {
+        data.leftovers.push({ id, time: new Date(now), qty: 0 });
+        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${now}" onchange="update('${type}',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('${type}',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('${type}',${id})">✕</button></div>`;
       }
       document.getElementById(`${type}-container`).insertAdjacentHTML('beforeend', html);
     }
 
     function update(type, id, key, val) {
       const item = data[type].find(x => x.id === id);
-      if (item) {
-        if (key === 'time') item.time = new Date(val);
-        else if (key === 'qty') item.qty = parseInt(val) || 0;
-        else item[key] = val;
-      }
+      if (key === 'time') item.time = new Date(val);
+      else if (key === 'qty') item.qty = parseInt(val) || 0;
+      else item[key] = val;
     }
 
     function remove(type, id) {
       data[type] = data[type].filter(x => x.id !== id);
-      const el = document.querySelector(`[data-id="${id}"]`);
-      if(el) el.remove();
+      document.querySelector(`[data-id="${id}"]`).remove();
     }
 
-    // UPDATED: Silent Clear without page refresh
-    function clearAll() {
-      if (confirm("Reset all calculator data?")) {
-        data = { outs: [], packs: [], leftovers: [] };
-        document.getElementById('outs-container').innerHTML = '';
-        document.getElementById('packs-container').innerHTML = '';
-        document.getElementById('leftover-container').innerHTML = '';
-        document.getElementById('results').innerHTML = '';
-        
-        // Add one empty vial out row for a better "start over" experience
-        addRow('outs');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
+    function clearAll() { if(confirm("Clear all data?")) location.reload(); }
 
     function calculateTOR() {
       const vOuts = data.outs.filter(o => o.qty > 0).map(o => ({ type: 'out', time: o.time, qty: o.qty }));
@@ -175,14 +145,13 @@
       const vLefts = data.leftovers.filter(l => l.qty > 0).map(l => ({ type: 'return', time: l.time, qty: l.qty }));
 
       let events = [...vOuts, ...vPacks, ...vLefts].sort((a,b) => a.time - b.time);
-      if (!vOuts.length) return alert("Please add at least one Vial Out quantity.");
+      if (!vOuts.length) return alert("Enter Vial Out data");
 
       let torDetails = [], outStack = [], fridge = [];
 
       events.forEach(e => {
         let q = e.qty;
         if (e.type === 'out') {
-          // Pull from fridge first (Oldest returned vials first)
           while (q > 0 && fridge.length) {
             let r = fridge[0]; let pull = Math.min(q, r.qty);
             outStack.push({ qty: pull, outTime: e.time, acc: r.acc, isRepulled: true });
@@ -193,19 +162,15 @@
           while (q > 0 && outStack.length) {
             let b = outStack[0]; let pull = Math.min(q, b.qty);
             let t = b.acc + ((e.time - b.outTime)/60000);
-            torDetails.push({ 
-              type: `📦 Pack (${e.config||'N/A'})`, 
-              time: e.time, push: b.outTime, qty: pull, tor: t, 
-              showCumulativeNote: (b.isRepulled && b.acc > 0) 
-            });
+            torDetails.push({ type: `📦 Pack (${e.config||'N/A'})`, time: e.time, push: b.outTime, qty: pull, tor: t, note: (b.isRepulled && b.acc > 0) });
             q -= pull; b.qty -= pull; if (b.qty <= 0) outStack.shift();
           }
-        } else if (e.type === 'return') {
+        } else {
           while (q > 0 && outStack.length) {
-            let b = outStack[outStack.length-1]; // LIFO Return logic
+            let b = outStack[outStack.length-1]; // LIFO
             let pull = Math.min(q, b.qty);
             let t = b.acc + ((e.time - b.outTime)/60000);
-            torDetails.push({ type: `📤 Leftover Return`, time: e.time, push: b.outTime, qty: pull, tor: t, showCumulativeNote: false });
+            torDetails.push({ type: `📤 Leftover Return`, time: e.time, push: b.outTime, qty: pull, tor: t, note: false });
             fridge.push({ qty: pull, acc: t });
             q -= pull; b.qty -= pull; if (b.qty <= 0) outStack.pop();
           }
@@ -213,35 +178,29 @@
       });
 
       const maxT = torDetails.length ? Math.max(...torDetails.map(d => d.tor)) : 0;
-      let html = `<div class="table-wrapper"><table><tr><th>Event</th><th>Pushed Out At</th><th>Event Time</th><th>Qty</th><th>Accumulated TOR</th></tr>`;
+      let html = `<div class="table-wrapper"><table><tr><th>Event</th><th>Pushed Out</th><th>Event Time</th><th>Qty</th><th>Accumulated TOR</th></tr>`;
       
       torDetails.forEach(d => {
         let isMax = (d.tor === maxT && maxT > 0);
-        let rowCls = isMax ? 'class="highlight-max-row"' : (d.showCumulativeNote ? 'class="highlight-history"' : '');
-        let note = d.showCumulativeNote ? `<span class="comment-text">Including leftover return TOR</span>` : '';
+        let rowCls = isMax ? 'class="highlight-max-row"' : (d.note ? 'class="highlight-history"' : '');
+        let note = d.note ? `<span class="comment-text">Including leftover return TOR</span>` : '';
+        const fmt = (dt) => dt.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
         
-        html += `<tr ${rowCls}>
-          <td>${d.type}${note}</td>
-          <td>${formatDT(d.push)}</td>
-          <td>${formatDT(d.time)}</td>
-          <td>${d.qty}</td>
-          <td><strong>${minToHHMM(d.tor)}</strong></td>
-        </tr>`;
+        html += `<tr ${rowCls}><td>${d.type}${note}</td><td>${fmt(d.push)}</td><td>${fmt(d.time)}</td><td>${d.qty}</td><td><strong>${Math.floor(d.tor/60).toString().padStart(2,'0')}:${Math.floor(d.tor%60).toString().padStart(2,'0')}</strong></td></tr>`;
       });
-      html += `</table></div><div class="max-tor">🔥 Batch Max Cumulative TOR: ${minToHHMM(maxT)}</div>`;
+      html += `</table></div><div class="max-tor">🔥 Batch Max TOR: ${Math.floor(maxT/60).toString().padStart(2,'0')}:${Math.floor(maxT%60).toString().padStart(2,'0')}</div>`;
       document.getElementById('results').innerHTML = html;
     }
-
-    // Startup: Add first row automatically
-    window.onload = () => addRow('outs');
-          // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service worker registered!', reg))
-          .catch(err => console.log('Service worker failed.', err));
-      });
-    }
+  </script>
+  <script>
+      // PWA Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service worker registered!', reg))
+            .catch(err => console.log('Service worker failed.', err));
+        });
+      }
   </script>
 </body>
 </html>
