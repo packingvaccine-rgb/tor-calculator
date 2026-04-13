@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tor-calc-v2';
+const CACHE_NAME = 'tor-calc-v3';
 const assets = ['./', './index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', e => {
