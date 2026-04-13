@@ -234,8 +234,7 @@
 
     // Startup: Add first row automatically
     window.onload = () => addRow('outs');
-  </script>
-      // PWA Service Worker Registration
+    // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -243,5 +242,6 @@
           .catch(err => console.log('Service worker failed.', err));
       });
     }
+  </script>
 </body>
 </html>
