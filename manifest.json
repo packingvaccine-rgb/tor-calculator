@@ -1,17 +1,27 @@
 {
   "short_name": "TOR Calc",
   "name": "Vial TOR Calculator",
+  "description": "Calculates Time Out of Refrigeration for vial processing.",
   "icons": [
     {
       "src": "icon.png",
       "type": "image/png",
+      "sizes": "188x188",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "type": "image/png",
       "sizes": "500x500",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "index.html",
   "background_color": "#f0f2f5",
   "display": "standalone",
+  "orientation": "portrait",
   "scope": "./",
-  "theme_color": "#1a73e8"
+  "theme_color": "#1a73e8",
+  "dir": "ltr",
+  "lang": "en-US"
 }
