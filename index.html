@@ -68,6 +68,18 @@
     </div>
 
     <div class="section no-print">
+      <div class="section-header"><h3>🚫 Rejections</h3></div>
+      <div id="rejections-container"></div>
+      <button class="btn-add-below" onclick="addRow('rejections')">➕ Add Rejection</button>
+    </div>
+
+    <div class="section no-print">
+      <div class="section-header"><h3>🧪 Samples</h3></div>
+      <div id="samples-container"></div>
+      <button class="btn-add-below" onclick="addRow('samples')">➕ Add Sample</button>
+    </div>
+
+    <div class="section no-print">
       <div class="section-header"><h3>📤 Leftovers</h3></div>
       <div id="leftover-container"></div>
       <button class="btn-add-below" onclick="addRow('leftovers')">➕ Add Return</button>
@@ -82,7 +94,8 @@
   </div>
 
   <script>
-    let data = { outs: [], packs: [], leftovers: [] };
+    // Updated data object to track new metrics
+    let data = { outs: [], packs: [], rejections: [], samples: [], leftovers: [] };
 
     function getNow() {
       const now = new Date();
@@ -94,9 +107,7 @@
       const id = Date.now();
       const nowStr = getNow();
       let html = '';
-      
-      // Fixed: standardized container mapping
-      let targetId = (type === 'leftovers') ? 'leftover-container' : `${type}-container`;
+      let containerId = type === 'leftovers' ? 'leftover-container' : `${type}-container`;
       
       if(type === 'outs') {
         data.outs.push({ id, time: new Date(nowStr), qty: 0 });
@@ -104,12 +115,11 @@
       } else if(type === 'packs') {
         data.packs.push({ id, time: new Date(nowStr), qty: 0, config: '' });
         html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('packs',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('packs',${id},'qty',this.value)"><input type="text" placeholder="Config" onchange="update('packs',${id},'config',this.value)"><button class="remove-btn" onclick="remove('packs',${id})">✕</button></div>`;
-      } else if(type === 'leftovers') {
-        data.leftovers.push({ id, time: new Date(nowStr), qty: 0 });
-        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('leftovers',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('leftovers',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('leftovers',${id})">✕</button></div>`;
+      } else if(type === 'rejections' || type === 'samples' || type === 'leftovers') {
+        data[type].push({ id, time: new Date(nowStr), qty: 0 });
+        html = `<div class="input-row" data-id="${id}"><input type="datetime-local" value="${nowStr}" onchange="update('${type}',${id},'time',this.value)"><input type="number" placeholder="Qty" onchange="update('${type}',${id},'qty',this.value)"><button class="remove-btn" onclick="remove('${type}',${id})">✕</button></div>`;
       }
-      
-      document.getElementById(targetId).insertAdjacentHTML('beforeend', html);
+      document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
     }
 
     function update(type, id, key, val) {
@@ -129,10 +139,8 @@
 
     function clearAll() {
       if (confirm("Reset all data?")) {
-        data = { outs: [], packs: [], leftovers: [] };
-        document.getElementById('outs-container').innerHTML = '';
-        document.getElementById('packs-container').innerHTML = '';
-        document.getElementById('leftover-container').innerHTML = '';
+        data = { outs: [], packs: [], rejections: [], samples: [], leftovers: [] };
+        ['outs-container','packs-container','rejections-container', 'samples-container', 'leftover-container'].forEach(id => document.getElementById(id).innerHTML = '');
         document.getElementById('results').innerHTML = '';
         addRow('outs');
       }
@@ -141,9 +149,12 @@
     function calculateTOR() {
       const vOuts = data.outs.filter(o => o.qty > 0).map(o => ({ type: 'out', time: o.time, qty: o.qty }));
       const vPacks = data.packs.filter(p => p.qty > 0).map(p => ({ type: 'pack', time: p.time, qty: p.qty, config: p.config }));
+      const vRejects = data.rejections.filter(r => r.qty > 0).map(r => ({ type: 'reject', time: r.time, qty: r.qty }));
+      const vSamples = data.samples.filter(s => s.qty > 0).map(s => ({ type: 'sample', time: s.time, qty: s.qty }));
       const vLefts = data.leftovers.filter(l => l.qty > 0).map(l => ({ type: 'return', time: l.time, qty: l.qty }));
-
-      let events = [...vOuts, ...vPacks, ...vLefts].sort((a,b) => a.time - b.time);
+      
+      // Merge all events into the timeline timeline
+      let events = [...vOuts, ...vPacks, ...vRejects, ...vSamples, ...vLefts].sort((a,b) => a.time - b.time);
       if (!vOuts.length) return alert("Add Vial Out qty");
 
       let torDetails = [], outStack = [], fridge = [];
@@ -154,17 +165,26 @@
           while (q > 0 && fridge.length) {
             let r = fridge[0]; let pull = Math.min(q, r.qty);
             outStack.push({ qty: pull, outTime: e.time, acc: r.acc, isRepulled: true });
-            q -= pull; r.qty -= pull; if (r.qty <= 0) fridge.shift();
+            q -= pull; r.qty -= pull; 
+            if (r.qty <= 0) fridge.shift();
           }
           if (q > 0) outStack.push({ qty: q, outTime: e.time, acc: 0, isRepulled: false });
-        } else if (e.type === 'pack') {
+        } else if (e.type === 'pack' || e.type === 'reject' || e.type === 'sample') {
+          // FIFO deduction applies to Packs, Rejections, and Samples
           while (q > 0 && outStack.length) {
             let b = outStack[0]; let pull = Math.min(q, b.qty);
             let t = b.acc + ((e.time - b.outTime)/60000);
-            torDetails.push({ type: `📦 Pack (${e.config||'N/A'})`, time: e.time, push: b.outTime, qty: pull, tor: t, note: (b.isRepulled && b.acc > 0) });
+            
+            let label = '';
+            if (e.type === 'pack') label = `📦 Pack (${e.config||'N/A'})`;
+            else if (e.type === 'reject') label = `🚫 Rejection`;
+            else label = `🧪 Sample`;
+
+            torDetails.push({ type: label, time: e.time, push: b.outTime, qty: pull, tor: t, note: (b.isRepulled && b.acc > 0) });
             q -= pull; b.qty -= pull; if (b.qty <= 0) outStack.shift();
           }
         } else if (e.type === 'return') {
+          // LIFO deduction for Leftover Returns
           while (q > 0 && outStack.length) {
             let b = outStack[outStack.length-1]; 
             let pull = Math.min(q, b.qty);
@@ -178,6 +198,7 @@
 
       const maxT = torDetails.length ? Math.max(...torDetails.map(d => d.tor)) : 0;
       let html = `<div class="table-wrapper"><table><tr><th>Event</th><th>Pushed Out</th><th>Event Time</th><th>Qty</th><th>Acc. TOR</th></tr>`;
+      
       torDetails.forEach(d => {
         let isMax = (d.tor === maxT && maxT > 0);
         let rowCls = isMax ? 'class="highlight-max-row"' : (d.note ? 'class="highlight-history"' : '');
@@ -186,6 +207,7 @@
         const h = Math.floor(d.tor/60).toString().padStart(2,'0'), m = Math.floor(d.tor%60).toString().padStart(2,'0');
         html += `<tr ${rowCls}><td>${d.type}${note}</td><td>${fmt(d.push)}</td><td>${fmt(d.time)}</td><td>${d.qty}</td><td><strong>${h}:${m}</strong></td></tr>`;
       });
+      
       html += `</table></div><div class="max-tor">🔥 Max TOR: ${Math.floor(maxT/60).toString().padStart(2,'0')}:${Math.floor(maxT%60).toString().padStart(2,'0')}</div>`;
       document.getElementById('results').innerHTML = html;
     }
