@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tor-cal-v4';
+const CACHE_NAME = 'tor-cal-v3';
 const ASSETS = [
   './',
   './index.html',
