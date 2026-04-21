@@ -6,13 +6,13 @@
     {
       "src": "icon.png",
       "type": "image/png",
-      "sizes": "188x188",
+      "sizes": "192x192",
       "purpose": "any"
     },
     {
       "src": "icon.png",
       "type": "image/png",
-      "sizes": "500x500",
+      "sizes": "512x512",
       "purpose": "maskable"
     }
   ],
